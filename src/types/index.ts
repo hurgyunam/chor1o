@@ -28,6 +28,10 @@ export type PartName =
 export interface PartBlock {
   name: PartName
   label: string
+  /** 파트 길이(초). 포인트 계산 시 배율로 곱해진다. */
+  duration: number
+  /** 파트 고유 배율. 멤버 상성 포인트에 곱해진다. 리롤 시 변동한다. */
+  bonusMultiplier: number
   strongType: RGBType
   neutralType: RGBType
   weakType: RGBType

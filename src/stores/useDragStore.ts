@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { PartName } from '@/types'
+import { updatePartListAutoScroll, stopPartListAutoScroll } from '@/utils/partListAutoScroll'
+import { resolvePartNameAtPoint } from '@/utils/partHitTest'
 
 export type DragSource =
   | { kind: 'member-list'; memberId: string }
   | { kind: 'part-block'; partName: PartName; memberId: string }
 
-function resolveHoveredPartName(x: number, y: number): PartName | null {
-  const hit = document.elementsFromPoint(x, y).find(
-    (el) => el instanceof HTMLElement && el.dataset.partName,
-  )
-  if (!hit || !(hit instanceof HTMLElement)) return null
-  return hit.dataset.partName as PartName
+function resolveHoveredPartName(
+  x: number,
+  y: number,
+  _source: DragSource | null,
+): PartName | null {
+  return resolvePartNameAtPoint(x, y)
 }
 
 export const useDragStore = defineStore('drag', () => {
@@ -26,16 +28,26 @@ export const useDragStore = defineStore('drag', () => {
     source.value = src
     pointerX.value = x
     pointerY.value = y
-    hoveredPartName.value = resolveHoveredPartName(x, y)
+    hoveredPartName.value = resolveHoveredPartName(x, y, src)
+  }
+
+  function refreshHoveredPart() {
+    hoveredPartName.value = resolveHoveredPartName(
+      pointerX.value,
+      pointerY.value,
+      source.value,
+    )
   }
 
   function movePointer(x: number, y: number) {
     pointerX.value = x
     pointerY.value = y
-    hoveredPartName.value = resolveHoveredPartName(x, y)
+    refreshHoveredPart()
+    updatePartListAutoScroll(x, y, refreshHoveredPart)
   }
 
   function endDrag() {
+    stopPartListAutoScroll()
     isDragging.value = false
     source.value = null
     hoveredPartName.value = null

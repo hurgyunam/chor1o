@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import type { Member, PartBlock } from '@/types'
 import RGBTypeDot from '@/components/RGBTypeDot.vue'
 import { useDragStore } from '@/stores/useDragStore'
+import { useSongStore } from '@/stores/useSongStore'
 import { useDraggable } from '@/composables/useDraggable'
-import { getStatAffinityTier } from '@/utils/pointCalc'
+import {
+  formatSharePercent,
+  getMemberShare,
+  getStatAffinityTier,
+  MEMBER_SHARE_PENALTY_THRESHOLD,
+} from '@/utils/pointCalc'
 import { getRgbColor } from '@/utils/rgb'
 
 const props = defineProps<{
@@ -14,10 +21,16 @@ const props = defineProps<{
 }>()
 
 const dragStore = useDragStore()
+const songStore = useSongStore()
+const { parts } = storeToRefs(songStore)
 
 const isBeingDragged = computed(
   () => dragStore.isDragging && dragStore.source?.memberId === props.member.id,
 )
+
+const partShare = computed(() => getMemberShare(props.member.id, parts.value))
+
+const isSharePenalized = computed(() => partShare.value > MEMBER_SHARE_PENALTY_THRESHOLD)
 
 const draggable = useDraggable({
   getSource: () => ({ kind: 'member-list', memberId: props.member.id }),
@@ -70,6 +83,16 @@ const statRows = computed(() => [
           <span class="member-card__stat-level">{{ row.stat.level }}</span>
         </li>
       </ul>
+
+      <div
+        class="member-card__share"
+        :class="{ 'member-card__share--penalty': isSharePenalized }"
+        :aria-label="`현재 곡 파트 비중 ${formatSharePercent(partShare)}`"
+      >
+        <span class="member-card__share-label">파트 비중</span>
+        <span class="member-card__share-value">{{ formatSharePercent(partShare) }}</span>
+        <span v-if="isSharePenalized" class="member-card__share-badge">반감</span>
+      </div>
     </div>
   </article>
 </template>
@@ -121,9 +144,9 @@ const statRows = computed(() => [
 .member-card__info {
   flex: 1;
   min-width: 0;
+  min-height: 88px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 8px;
 }
 
@@ -132,6 +155,51 @@ const statRows = computed(() => [
   font-weight: 700;
   line-height: 1.2;
   color: var(--color-text);
+}
+
+.member-card__share {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 4px 6px;
+  margin-left: -4px;
+  margin-right: -4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-b) 8%, transparent);
+}
+
+.member-card__share--penalty {
+  background: color-mix(in srgb, #e8a04c 14%, transparent);
+}
+
+.member-card__share-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.member-card__share-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.member-card__share--penalty .member-card__share-value {
+  color: #e8a04c;
+}
+
+.member-card__share-badge {
+  margin-left: auto;
+  padding: 1px 5px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e8a04c;
+  background: color-mix(in srgb, #e8a04c 16%, transparent);
+  border: 1px solid color-mix(in srgb, #e8a04c 40%, var(--color-border));
+  border-radius: 999px;
 }
 
 .member-card__stats {

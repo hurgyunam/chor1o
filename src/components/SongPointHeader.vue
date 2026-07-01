@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useGameStore } from '@/stores/useGameStore'
 import { useSongStore } from '@/stores/useSongStore'
-import { formatPoint } from '@/utils/pointCalc'
+import { formatPoint, getMemberShareInfos } from '@/utils/pointCalc'
 
 const songStore = useSongStore()
+const gameStore = useGameStore()
 const { totalPoint, parts, isComplete, songTitle, isConfirmed } = storeToRefs(songStore)
+const { coins } = storeToRefs(gameStore)
 
 const canConfirm = computed(() => isComplete.value && !isConfirmed.value)
 
@@ -17,6 +20,10 @@ const scoreBump = ref(false)
 
 const assignedCount = computed(
   () => parts.value.filter((part) => part.assignedMemberId !== null).length,
+)
+
+const penalizedMemberCount = computed(
+  () => getMemberShareInfos(parts.value).filter((info) => info.isPenalized).length,
 )
 
 watch(totalPoint, () => {
@@ -32,8 +39,11 @@ watch(totalPoint, () => {
     <div class="song-header__brand">
       <span class="song-header__title">chor1o</span>
       <p class="song-header__formula">
-        스탯 레벨 × RGB 상성
+        스탯 레벨 × RGB 상성 × 파트 길이
         <span class="song-header__formula-multipliers">(350% · 100% · 15%)</span>
+      </p>
+      <p v-if="penalizedMemberCount > 0" class="song-header__penalty">
+        비중 50% 초과 멤버 {{ penalizedMemberCount }}명 반감 적용
       </p>
       <div class="song-header__song-row">
         <span class="song-header__song-title">곡제목: {{ songTitle }}</span>
@@ -53,6 +63,10 @@ watch(totalPoint, () => {
     </div>
 
     <div class="song-header__score" :class="{ 'song-header__score--complete': isComplete }">
+      <div class="song-header__coins" aria-label="보유 게임코인">
+        <span class="song-header__coins-label">코인</span>
+        <span class="song-header__coins-value">{{ coins }}</span>
+      </div>
       <span class="song-header__score-label">곡 포인트</span>
       <span
         class="song-header__score-value"
@@ -98,6 +112,13 @@ watch(totalPoint, () => {
 
 .song-header__formula-multipliers {
   font-variant-numeric: tabular-nums;
+}
+
+.song-header__penalty {
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #e8a04c;
 }
 
 .song-header__song-row {
@@ -170,6 +191,26 @@ watch(totalPoint, () => {
 .song-header__score--complete {
   border-color: var(--color-g);
   background: color-mix(in srgb, var(--color-g) 10%, var(--color-surface));
+}
+
+.song-header__coins {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.song-header__coins-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.song-header__coins-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-b);
 }
 
 .song-header__score-label {
