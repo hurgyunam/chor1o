@@ -3,15 +3,15 @@ import type { Member, PartBlock, RGBType, Stat } from '@/types'
 export type AffinityTier = 'strong' | 'neutral' | 'weak'
 
 export const AFFINITY_MULTIPLIER: Record<AffinityTier, number> = {
-  strong: 2.0,
+  strong: 3.5,
   neutral: 1.0,
-  weak: 0.5,
+  weak: 0.15,
 }
 
 export const AFFINITY_LABEL: Record<AffinityTier, string> = {
-  strong: '200%',
+  strong: '350%',
   neutral: '100%',
-  weak: '50%',
+  weak: '15%',
 }
 
 export interface PartAffinity {
@@ -24,6 +24,7 @@ export interface PartAffinity {
 export interface StatPointBreakdown {
   label: string
   stat: Stat
+  tier: AffinityTier
   multiplier: number
   point: number
 }
@@ -36,10 +37,18 @@ export function getPartAffinities(part: PartBlock): PartAffinity[] {
   ]
 }
 
+function getAffinityTier(memberType: RGBType, part: PartBlock): AffinityTier {
+  if (memberType === part.strongType) return 'strong'
+  if (memberType === part.neutralType) return 'neutral'
+  return 'weak'
+}
+
+export function getStatAffinityTier(statType: RGBType, part: PartBlock): AffinityTier {
+  return getAffinityTier(statType, part)
+}
+
 function getMultiplier(memberType: RGBType, part: PartBlock): number {
-  if (memberType === part.strongType) return AFFINITY_MULTIPLIER.strong
-  if (memberType === part.neutralType) return AFFINITY_MULTIPLIER.neutral
-  return AFFINITY_MULTIPLIER.weak
+  return AFFINITY_MULTIPLIER[getAffinityTier(memberType, part)]
 }
 
 export function calcStatPoint(stat: Stat, part: PartBlock): number {
@@ -54,10 +63,12 @@ export function calcPartPointBreakdown(member: Member, part: PartBlock): StatPoi
   ]
 
   return rows.map(({ label, stat }) => {
-    const multiplier = getMultiplier(stat.type, part)
+    const tier = getAffinityTier(stat.type, part)
+    const multiplier = AFFINITY_MULTIPLIER[tier]
     return {
       label,
       stat,
+      tier,
       multiplier,
       point: stat.level * multiplier,
     }
@@ -66,6 +77,15 @@ export function calcPartPointBreakdown(member: Member, part: PartBlock): StatPoi
 
 export function calcPartPoint(member: Member, part: PartBlock): number {
   return calcPartPointBreakdown(member, part).reduce((sum, row) => sum + row.point, 0)
+}
+
+export type MatchQuality = 'great' | 'good' | 'neutral'
+
+export function getMatchQuality(member: Member, part: PartBlock): MatchQuality {
+  const strongCount = calcPartPointBreakdown(member, part).filter((row) => row.tier === 'strong').length
+  if (strongCount >= 2) return 'great'
+  if (strongCount === 1) return 'good'
+  return 'neutral'
 }
 
 export function formatPoint(value: number): string {

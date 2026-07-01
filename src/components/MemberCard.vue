@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Member } from '@/types'
+import type { Member, PartBlock } from '@/types'
 import RGBTypeDot from '@/components/RGBTypeDot.vue'
 import { useDragStore } from '@/stores/useDragStore'
 import { useDraggable } from '@/composables/useDraggable'
+import { getStatAffinityTier } from '@/utils/pointCalc'
+import { getRgbColor } from '@/utils/rgb'
 
 const props = defineProps<{
   member: Member
   draggable?: boolean
+  part?: PartBlock
 }>()
 
 const dragStore = useDragStore()
@@ -26,7 +29,11 @@ const statRows = computed(() => [
   { label: '외모', stat: props.member.appearance },
   { label: '보컬', stat: props.member.vocal },
   { label: '안무', stat: props.member.choreography },
-])
+].map((row) => ({
+  ...row,
+  affinityTier: props.part ? getStatAffinityTier(row.stat.type, props.part) : null,
+  accentColor: getRgbColor(row.stat.type),
+})))
 </script>
 
 <template>
@@ -55,6 +62,8 @@ const statRows = computed(() => [
           v-for="row in statRows"
           :key="row.label"
           class="member-card__stat"
+          :class="row.affinityTier ? `member-card__stat--${row.affinityTier}` : undefined"
+          :style="row.affinityTier === 'strong' ? { '--stat-accent': row.accentColor } : undefined"
         >
           <span class="member-card__stat-label">{{ row.label }}</span>
           <RGBTypeDot :type="row.stat.type" :size="16" />
@@ -137,6 +146,24 @@ const statRows = computed(() => [
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  border-radius: 4px;
+  margin: 0 -4px;
+  padding: 2px 4px;
+}
+
+.member-card__stat--strong {
+  background: color-mix(in srgb, var(--stat-accent) 22%, transparent);
+  animation: affinity-shimmer 1.1s ease-in-out infinite;
+}
+
+.member-card__stat--strong .member-card__stat-label,
+.member-card__stat--strong .member-card__stat-level {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.member-card__stat--weak {
+  opacity: 0.4;
 }
 
 .member-card__stat-label {

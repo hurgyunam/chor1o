@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import type { Member, PartBlock as PartBlockType } from '@/types'
 import PartAffinitySpec from '@/components/PartAffinitySpec.vue'
 import RGBTypeDot from '@/components/RGBTypeDot.vue'
 import { useDragStore } from '@/stores/useDragStore'
+import { useMemberStore } from '@/stores/useMemberStore'
 import { useSongStore } from '@/stores/useSongStore'
 import { useDraggable } from '@/composables/useDraggable'
-import { calcPartPoint, calcPartPointBreakdown, formatPoint } from '@/utils/pointCalc'
+import {
+  calcPartPoint,
+  calcPartPointBreakdown,
+  formatPoint,
+  getMatchQuality,
+} from '@/utils/pointCalc'
+import { getRgbColor } from '@/utils/rgb'
 
 const props = defineProps<{
   part: PartBlockType
@@ -14,11 +22,25 @@ const props = defineProps<{
 }>()
 
 const dragStore = useDragStore()
+const memberStore = useMemberStore()
 const songStore = useSongStore()
+const { isDragging, hoveredPartName } = storeToRefs(dragStore)
 
-const isDropTarget = computed(
-  () => dragStore.isDragging && dragStore.source?.kind === 'member-list',
+const landing = ref(false)
+const landingGreat = ref(false)
+const pointPop = ref<number | null>(null)
+const totalPop = ref(false)
+
+const isHoverTarget = computed(
+  () => isDragging.value && hoveredPartName.value === props.part.name,
 )
+
+const previewMatch = computed(() => {
+  if (!isHoverTarget.value || !dragStore.source) return null
+  const member = memberStore.getMemberById(dragStore.source.memberId)
+  if (!member) return null
+  return getMatchQuality(member, props.part)
+})
 
 const pointBreakdown = computed(() =>
   props.member ? calcPartPointBreakdown(props.member, props.part) : [],
@@ -47,14 +69,44 @@ function onDrop() {
     songStore.assignMember(props.part.name, src.memberId)
   }
 }
+
+watch(
+  () => songStore.assignFeedback?.seq,
+  () => {
+    const feedback = songStore.assignFeedback
+    if (!feedback || feedback.partName !== props.part.name) return
+
+    landing.value = true
+    landingGreat.value = feedback.strongCount >= 2
+    pointPop.value = feedback.point
+    totalPop.value = true
+
+    window.setTimeout(() => {
+      landing.value = false
+      landingGreat.value = false
+    }, 520)
+
+    window.setTimeout(() => {
+      pointPop.value = null
+    }, 900)
+
+    window.setTimeout(() => {
+      totalPop.value = false
+    }, 480)
+  },
+)
 </script>
 
 <template>
   <div
     class="part-block"
     :class="{
-      'part-block--drop-target': isDropTarget,
+      'part-block--drop-target': isHoverTarget,
+      'part-block--match-good': isHoverTarget && previewMatch === 'good',
+      'part-block--match-great': isHoverTarget && previewMatch === 'great',
       'part-block--filled': !!member,
+      'part-block--landing': landing,
+      'part-block--landing-great': landingGreat,
     }"
     data-drop-zone="part"
     :data-part-name="part.name"
@@ -63,7 +115,12 @@ function onDrop() {
     <span class="part-block__label">{{ part.label }}</span>
     <PartAffinitySpec :part="part" />
 
-    <div v-if="member" class="part-block__body" @pointerdown="assignedDraggable.onPointerDown">
+    <div
+      v-if="member"
+      class="part-block__body"
+      :class="{ 'part-block__body--reveal': landing }"
+      @pointerdown="assignedDraggable.onPointerDown"
+    >
       <div class="part-block__member">
         <div class="part-block__face">
           <img
@@ -79,9 +136,14 @@ function onDrop() {
 
       <ul class="part-block__stats" aria-label="파트 포인트 상세">
         <li
-          v-for="row in pointBreakdown"
+          v-for="(row, index) in pointBreakdown"
           :key="row.label"
           class="part-block__stat"
+          :class="`part-block__stat--${row.tier}`"
+          :style="{
+            ...(row.tier === 'strong' ? { '--stat-accent': getRgbColor(row.stat.type) } : {}),
+            ...(landing ? { '--reveal-delay': `${0.05 + index * 0.07}s` } : {}),
+          }"
         >
           <span class="part-block__stat-label">{{ row.label }}</span>
           <RGBTypeDot :type="row.stat.type" :size="12" />
@@ -92,7 +154,12 @@ function onDrop() {
 
       <div class="part-block__total">
         <span class="part-block__total-label">포인트</span>
-        <span class="part-block__total-value">{{ formatPoint(totalPoint) }}</span>
+        <span
+          class="part-block__total-value"
+          :class="{ 'part-block__total-value--pop': totalPop }"
+        >
+          {{ formatPoint(totalPoint) }}
+        </span>
       </div>
     </div>
 
@@ -100,11 +167,21 @@ function onDrop() {
       <span class="part-block__empty-icon" aria-hidden="true">+</span>
       <span class="part-block__empty-text">드롭</span>
     </div>
+
+    <span
+      v-if="pointPop !== null"
+      class="part-block__point-pop"
+      :class="{ 'part-block__point-pop--great': landingGreat }"
+      aria-hidden="true"
+    >
+      +{{ formatPoint(pointPop) }}
+    </span>
   </div>
 </template>
 
 <style scoped>
 .part-block {
+  position: relative;
   flex-shrink: 0;
   width: 132px;
   min-height: 220px;
@@ -116,12 +193,36 @@ function onDrop() {
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   scroll-snap-align: start;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
 
 .part-block--drop-target {
   border-color: var(--color-b);
-  background: color-mix(in srgb, var(--color-b) 8%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-b) 10%, var(--color-surface));
+  transform: scale(1.02);
+}
+
+.part-block--match-good {
+  --juice-color: var(--color-b);
+  border-color: var(--color-b);
+  background: color-mix(in srgb, var(--color-b) 16%, var(--color-surface));
+  animation: glow-pulse 0.9s ease-in-out infinite;
+}
+
+.part-block--match-great {
+  --juice-color: var(--color-g);
+  border-color: var(--color-g);
+  background: color-mix(in srgb, var(--color-g) 18%, var(--color-surface));
+  animation: glow-pulse 0.7s ease-in-out infinite;
+}
+
+.part-block--landing {
+  animation: pop-land 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.part-block--landing-great {
+  --juice-color: var(--color-g);
+  box-shadow: 0 0 20px 4px color-mix(in srgb, var(--color-g) 35%, transparent);
 }
 
 .part-block--filled {
@@ -149,6 +250,11 @@ function onDrop() {
 
 .part-block__body:active {
   cursor: grabbing;
+}
+
+.part-block__body--reveal .part-block__stat {
+  animation: stat-reveal 0.38s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+  animation-delay: var(--reveal-delay, 0s);
 }
 
 .part-block__empty {
@@ -230,6 +336,29 @@ function onDrop() {
   align-items: center;
   gap: 4px;
   font-size: 10px;
+  border-radius: 3px;
+  margin: 0 -2px;
+  padding: 1px 2px;
+}
+
+.part-block__stat--strong {
+  background: color-mix(in srgb, var(--stat-accent) 22%, transparent);
+}
+
+.part-block__body--reveal .part-block__stat--strong {
+  animation: stat-reveal 0.38s cubic-bezier(0.34, 1.3, 0.64, 1) backwards,
+    affinity-shimmer 0.8s ease-in-out 0.2s 2;
+  animation-delay: var(--reveal-delay, 0s), calc(var(--reveal-delay, 0s) + 0.2s);
+}
+
+.part-block__stat--strong .part-block__stat-label,
+.part-block__stat--strong .part-block__stat-level,
+.part-block__stat--strong .part-block__stat-point {
+  font-weight: 700;
+}
+
+.part-block__stat--weak {
+  opacity: 0.4;
 }
 
 .part-block__stat-label {
@@ -269,5 +398,29 @@ function onDrop() {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
+}
+
+.part-block__total-value--pop {
+  animation: total-pop 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.part-block__point-pop {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 2;
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-b);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  animation: point-float-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.part-block__point-pop--great {
+  font-size: 20px;
+  color: var(--color-g);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-g) 60%, transparent);
 }
 </style>

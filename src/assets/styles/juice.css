@@ -1,0 +1,58 @@
+@keyframes pop-land {
+  0% { transform: scale(0.88); }
+  45% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--juice-color, var(--color-g)) 0%, transparent); }
+  50% { box-shadow: 0 0 16px 2px color-mix(in srgb, var(--juice-color, var(--color-g)) 55%, transparent); }
+}
+
+@keyframes score-punch {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+@keyframes stat-reveal {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes point-float-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -4px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -28px) scale(1);
+  }
+}
+
+@keyframes affinity-shimmer {
+  0%, 100% { background: color-mix(in srgb, var(--stat-accent) 22%, transparent); }
+  50% { background: color-mix(in srgb, var(--stat-accent) 38%, transparent); }
+}
+
+@keyframes total-pop {
+  0% { transform: scale(1); color: var(--color-text); }
+  40% { transform: scale(1.35); color: var(--color-g); }
+  100% { transform: scale(1); color: var(--color-text); }
+}
+
+@keyframes ghost-snap {
+  0% { scale: 0.92; }
+  100% { scale: 1; }
+}
