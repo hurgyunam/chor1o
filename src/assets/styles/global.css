@@ -1,0 +1,40 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-r: #ff4d6d;
+  --color-g: #52d36a;
+  --color-b: #4d8fff;
+  --color-bg: #0f0f14;
+  --color-surface: #1a1a24;
+  --color-border: #2e2e3e;
+  --color-text: #f0f0f5;
+  --color-text-muted: #8888aa;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  max-width: 430px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
