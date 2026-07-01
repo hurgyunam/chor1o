@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import MemberCard from '@/components/MemberCard.vue'
+import DragOverlay from '@/components/DragOverlay.vue'
+import MemberCardList from '@/components/MemberCardList.vue'
+import PartBlockList from '@/components/PartBlockList.vue'
+import SongPointHeader from '@/components/SongPointHeader.vue'
+import TrashDropZone from '@/components/TrashDropZone.vue'
 import { useMemberStore } from '@/stores/useMemberStore'
 
 const memberStore = useMemberStore()
@@ -9,21 +13,18 @@ const { members } = storeToRefs(memberStore)
 
 <template>
   <div class="app-shell">
-    <header class="app-header">
-      <span class="app-title">chor1o</span>
-    </header>
-    <main class="app-main">
-      <section class="preview-section">
-        <h1 class="preview-title">멤버 카드</h1>
-        <div class="member-card-list">
-          <MemberCard
-            v-for="member in members"
-            :key="member.id"
-            :member="member"
-          />
-        </div>
-      </section>
+    <SongPointHeader />
+
+    <main class="game-area">
+      <TrashDropZone />
+      <PartBlockList />
     </main>
+
+    <footer class="member-dock">
+      <MemberCardList :members="members" />
+    </footer>
+
+    <DragOverlay />
   </div>
 </template>
 
@@ -34,43 +35,19 @@ const { members } = storeToRefs(memberStore)
   height: 100%;
 }
 
-.app-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.app-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--color-text);
-}
-
-.app-main {
+.game-area {
+  position: relative;
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
-.preview-section {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.preview-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-}
-
-.member-card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.member-dock {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
 }
 </style>

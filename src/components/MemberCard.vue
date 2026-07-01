@@ -2,10 +2,25 @@
 import { computed } from 'vue'
 import type { Member } from '@/types'
 import RGBTypeDot from '@/components/RGBTypeDot.vue'
+import { useDragStore } from '@/stores/useDragStore'
+import { useDraggable } from '@/composables/useDraggable'
 
 const props = defineProps<{
   member: Member
+  draggable?: boolean
 }>()
+
+const dragStore = useDragStore()
+
+const isBeingDragged = computed(
+  () => dragStore.isDragging && dragStore.source?.memberId === props.member.id,
+)
+
+const draggable = useDraggable({
+  getSource: () => ({ kind: 'member-list', memberId: props.member.id }),
+  disabled: computed(() => !props.draggable),
+  requireLongPress: true,
+})
 
 const statRows = computed(() => [
   { label: '외모', stat: props.member.appearance },
@@ -15,7 +30,11 @@ const statRows = computed(() => [
 </script>
 
 <template>
-  <article class="member-card">
+  <article
+    class="member-card"
+    :class="{ 'member-card--dragging': isBeingDragged }"
+    @pointerdown="draggable.onPointerDown"
+  >
     <div class="member-card__face">
       <img
         v-if="member.imageUrl"
@@ -55,6 +74,12 @@ const statRows = computed(() => [
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   min-width: 260px;
+  touch-action: pan-x;
+  user-select: none;
+}
+
+.member-card--dragging {
+  opacity: 0.35;
 }
 
 .member-card__face {
