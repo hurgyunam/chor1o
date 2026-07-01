@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import SongChartModal from '@/components/SongChartModal.vue'
 import { useGameStore } from '@/stores/useGameStore'
 import { useSongStore } from '@/stores/useSongStore'
 import { formatPoint, getMemberShareInfos } from '@/utils/pointCalc'
@@ -17,6 +18,7 @@ function onConfirm() {
 }
 
 const scoreBump = ref(false)
+const showChartModal = ref(false)
 
 const assignedCount = computed(
   () => parts.value.filter((part) => part.assignedMemberId !== null).length,
@@ -67,7 +69,21 @@ watch(totalPoint, () => {
         <span class="song-header__coins-label">코인</span>
         <span class="song-header__coins-value">{{ coins }}</span>
       </div>
-      <span class="song-header__score-label">곡 포인트</span>
+      <div class="song-header__score-label-row">
+        <span class="song-header__score-label">곡 포인트</span>
+        <button
+          type="button"
+          class="song-header__chart-btn"
+          aria-label="음원차트 순위 보기"
+          @click="showChartModal = true"
+        >
+          <svg class="song-header__chart-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="1" y="9" width="3" height="6" rx="0.5" fill="currentColor" />
+            <rect x="6.5" y="5" width="3" height="10" rx="0.5" fill="currentColor" />
+            <rect x="12" y="1" width="3" height="14" rx="0.5" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
       <span
         class="song-header__score-value"
         :class="{ 'song-header__score-value--bump': scoreBump }"
@@ -76,6 +92,13 @@ watch(totalPoint, () => {
       </span>
       <span class="song-header__score-meta">{{ assignedCount }} / {{ parts.length }} 파트</span>
     </div>
+
+    <SongChartModal
+      v-if="showChartModal"
+      :song-title="songTitle"
+      :player-point="totalPoint"
+      @close="showChartModal = false"
+    />
   </header>
 </template>
 
@@ -213,10 +236,43 @@ watch(totalPoint, () => {
   color: var(--color-b);
 }
 
+.song-header__score-label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .song-header__score-label {
   font-size: 10px;
   font-weight: 600;
   color: var(--color-text-muted);
+}
+
+.song-header__chart-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.song-header__chart-btn:hover,
+.song-header__chart-btn:active {
+  color: var(--color-b);
+  background: color-mix(in srgb, var(--color-b) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-b) 30%, transparent);
+}
+
+.song-header__chart-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .song-header__score-value {
