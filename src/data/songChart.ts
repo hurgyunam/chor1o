@@ -1,4 +1,6 @@
-/** 음원차트 곡 순위 (MVP 목업 데이터) */
+import { getWeeklyChartEntries } from '@/data/teamSongCatalog'
+
+/** 음원차트 곡 순위 */
 export interface ChartEntry {
   rank: number
   songName: string
@@ -12,27 +14,18 @@ export interface SongChart {
   entries: ChartEntry[]
 }
 
-/** 현재 곡(Fly 가제)이 속한 음원차트 — 포인트는 내림차순 */
-export const FLY_SONG_CHART: SongChart = {
+/** 주간 음원차트 — 작곡팀 카탈로그 곡 상위 12곡 (데모 탐색과 동일 제목·구조) */
+export const WEEKLY_SONG_CHART: SongChart = {
   songTitle: 'Fly(가제)',
   chartName: '주간 음원차트',
-  entries: [
-    { rank: 1, songName: 'Midnight Run', point: 14_280 },
-    { rank: 2, songName: '네온 펄스', point: 13_640 },
-    { rank: 3, songName: 'Starlight', point: 12_950 },
-    { rank: 4, songName: '미러볼', point: 12_100 },
-    { rank: 5, songName: 'Prism Heart', point: 11_420 },
-    { rank: 6, songName: '글로우 업', point: 10_680 },
-    { rank: 7, songName: 'Beat Wave', point: 9_940 },
-    { rank: 8, songName: '코스믹 드림', point: 9_210 },
-    { rank: 9, songName: 'Dreamcatcher', point: 8_550 },
-    { rank: 10, songName: '펄스', point: 7_880 },
-    { rank: 11, songName: 'Aurora', point: 7_120 },
-    { rank: 12, songName: '이클립스', point: 6_340 },
-  ],
+  entries: getWeeklyChartEntries(),
 }
 
+/** 플레이어 작업곡 차트 — 카탈로그 기반 주간 차트 표시 */
 export function getChartForSong(songTitle: string): SongChart | null {
-  if (songTitle === FLY_SONG_CHART.songTitle) return FLY_SONG_CHART
+  if (songTitle === WEEKLY_SONG_CHART.songTitle) return WEEKLY_SONG_CHART
   return null
 }
+
+/** @deprecated FLY_SONG_CHART → WEEKLY_SONG_CHART */
+export const FLY_SONG_CHART = WEEKLY_SONG_CHART

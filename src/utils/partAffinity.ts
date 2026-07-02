@@ -19,3 +19,22 @@ export function rollRandomAffinity(): {
   const [strongType, neutralType, weakType] = shuffle(RGB_TYPES)
   return { strongType: strongType!, neutralType: neutralType!, weakType: weakType! }
 }
+
+/** 작곡팀 주 특성을 strongType에 반영한다. bias 확률로 primaryType이 강점이 된다. */
+export function rollAffinityWithBias(primaryType: RGBType, bias = 0.7): {
+  strongType: RGBType
+  neutralType: RGBType
+  weakType: RGBType
+} {
+  if (Math.random() >= bias) {
+    return rollRandomAffinity()
+  }
+
+  const others = RGB_TYPES.filter((type) => type !== primaryType)
+  const [neutralType, weakType] = shuffle(others)
+  return {
+    strongType: primaryType,
+    neutralType: neutralType!,
+    weakType: weakType!,
+  }
+}
